@@ -36,6 +36,23 @@ Still, its far from perfect. With "medium" setting we get an image that is much 
 **Reflux medium strength**
 ![image](https://github.com/user-attachments/assets/b632457a-3a7e-4d99-981e-6c2682d16e2e)
 
+Finally, we try a very challenging prompt: "Marble statues, sculptures, stone statues. stone and marble texture. Two sculptures made out of marble stone.". As you can see, I repeated the prompt multiple times to increase its strength.
+But despite the repeats, the default Reflux workflow will just give us the input image refluxed - our prompt is totally ignored.
+
+**original Reflux setting**
+![ComfyUI_00108_](https://github.com/user-attachments/assets/24ad66e9-4f21-497d-8d0e-cb4778f0d1e9)
+
+With medium we get an image back that looks more like porcelain instead of marble, but at least the two women are sculptures now.
+
+**Reflux medium strength**
+![image](https://github.com/user-attachments/assets/dce4aa6f-52ab-4ef0-b027-193318895969)
+
+Further decreasing the Reflux strength will transform the woman into statues finally, but it will also further decrease their likeness to the conditioning image. In almost all my experiments, it was better to repeat multiple seeds with the "medium" setting instead of further decreasing the strength.
+
+## Usage
+
+The ComfyUI plugin comes with two additional nodes: 
+
 ## Short background on Reflux
 
 Reflux works in two steps. First there is a Clip Vision model that crops your input image into square aspect ratio and reduce its size to 384x384 pixels. It splits this image into 27x27 small patches and each patch is projected into CLIP space.
