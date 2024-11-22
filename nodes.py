@@ -32,12 +32,15 @@ def automerge(tensor, threshold):
         newTensor.append(torch.stack(tokens))
     return torch.stack(newTensor)
 
+DownScalingFactors = {"1:1": 1, "1:3":3, "1:9": 9}
+
 class StyleModelApplyAdvanced:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"conditioning": ("CONDITIONING", ),
                              "style_model": ("STYLE_MODEL", ),
                              "clip_vision_output": ("CLIP_VISION_OUTPUT", ),
+                             "downscale": (["1:1", "1:3", "1:9"], {"default": "1:1"}),
                              "merge_strength": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.01}),
                              "clipWeight": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
                              }}
@@ -46,14 +49,23 @@ class StyleModelApplyAdvanced:
 
     CATEGORY = "conditioning/style_model"
 
-    def apply_stylemodel(self, clip_vision_output, style_model, conditioning, merge_strength, clipWeight):
+    def apply_stylemodel(self, clip_vision_output, style_model, conditioning, downscale, merge_strength, clipWeight):
         cond = style_model.get_cond(clip_vision_output).flatten(start_dim=0, end_dim=1).unsqueeze(dim=0)
+        if downscale!="1:1":
+            (b,t,h)=cond.shape
+            m = int(np.sqrt(t))
+            factor = DownScalingFactors[downscale]
+            cond=torch.nn.PixelUnshuffle(factor)(cond.view(b, m, m, h).transpose(-1, 1)).transpose(1,-1)
+            cond=cond.view(b,m//factor, m//factor, h, factor*factor).mean(-1).view(b,-1, h)
+
         cond = automerge(cond, merge_strength)*clipWeight
         c = []
         for t in conditioning:
             n = [torch.cat((t[0], cond), dim=1), t[1].copy()]
             c.append(n)
         return (c, )
+
+
 
 
 # A dictionary that contains all nodes you want to export with their names

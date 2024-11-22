@@ -26,12 +26,16 @@ Even a threshold like 0.9 is already removing half of the Reflux tokens. A thres
 
 I would start with a threshold of 0.8. If the image is blurry, increase the value a bit. If there is no effect of your prompt, decrease the threshold slightly.
 
+## Token merging by downsampling
+
+Instead of merging similar tokens, we can also merge neighboured tokens. Sometimes this seems to harm the outcoming image less, but there are not many possible values: either we downsample by factor 3 or by factor 9. Latter is usually too strong. But I often get good results with factor 3.
+
 ## Controling Reflux with Token downscaling
 
 We can also just multiply the tokens by a certain strength value. As lower the strength, as closer the values are to zero. This is similar to prompt weighting which was quite popular for earlier stable diffusion versions, but never really worked that well for T5. Nevertheless, this technique seem to work well enough for flux.
 
 If you use downscaling, you have to use a very low weight. You can directly start with 0.3 and go down to 0.1 if you want to improve the effect. High weights like 0.6 usually have no impact.
 
-## Doing both?
+## Doing both or all three?
 
-Of course both techniques can be combined. For me its still unclear what is better. My feeling so far is that token merging works better, but if you merge too much it will make the image blurry. So if token merging is not strong enough, you can add token downscaling to further improve the effect.
+Of course all these techniques can be combined. For me its still unclear what is better. My feeling so far is that downsampling or token merging works better, though, both together is often too much. If you use too low threshold for merging, the image often gets blurry, probably because the tokens have some implicit positional information that gets mixed up during merging. Downsampling seem to not have this issue, but is quite strong in its effect. If token merging or downsampling is not strong enough, you can add token downscaling to further improve the effect.
