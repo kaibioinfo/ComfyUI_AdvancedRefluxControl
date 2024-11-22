@@ -36,6 +36,13 @@ Still, its far from perfect. With "medium" setting we get an image that is much 
 **Reflux medium strength**
 ![image](https://github.com/user-attachments/assets/b632457a-3a7e-4d99-981e-6c2682d16e2e)
 
+
+You can also mix more than one images together. Here is an example with adding a second image: [[https://www.pexels.com/de-de/foto/komplizierte-bogen-der-mogul-architektur-in-jaipur-29406307/]]
+
+Mixing both together and using the anime prompt above gives me
+
+![image](https://github.com/user-attachments/assets/1385b22f-4497-4fdf-8255-3a15bda74a1d)
+
 Finally, we try a very challenging prompt: "Marble statues, sculptures, stone statues. stone and marble texture. Two sculptures made out of marble stone.". As you can see, I repeated the prompt multiple times to increase its strength.
 But despite the repeats, the default Reflux workflow will just give us the input image refluxed - our prompt is totally ignored.
 
@@ -52,6 +59,14 @@ Further decreasing the Reflux strength will transform the woman into statues fin
 ## Usage
 
 You can use the images above for example workflows.
+
+Since last update I added a new node which I would recommend over the old workflow above. Use this image as an example workflow:
+
+![image](https://github.com/user-attachments/assets/b6ee8e4e-2599-499d-9dd4-7fbdc5879e90)
+
+There are two parameters you can play around with:
+- downsampling_factor: as larger the value as less information you get from your image. Use a value between 1 and 4 with 1 is the original reflux method. For all example images I used a downsampling_factor of 3, which usually works best. The image above, however, uses a downsampling_factor of 2 and, as you can see, is even closer to the original image while still having a clear anime style
+- mode: the method used for downsampling. "area" or "bicubic" work best.
 
 The ComfyUI plugin comes with two additional nodes: StyleModelApplySimple and StyleModelApplyAdvanced. Usually, you can just replace your ApplyStyle node with the StyleModelApplySimple node and "medium" strength and you will get best results. However, feel free to experiment with the StyleModelApplyAdvanced node.
 
@@ -71,6 +86,10 @@ So there are two solutions here: Either we shrink the strength of the Reflux pro
 To shrink the Reflux prompt and increase the influence of the user prompt, we can use a simple trick: We take the 27x27 image patches and split them into 9x9 blocks, each containing 3x3 patches. We then merge all 3x3 tokens into one by averaging their latent embeddings. So instead of having a very long prompt with 27x27=729 tokens we now only have 9x9=81 tokens. So our newly added prompt is much smaller than the user provided prompt and, thus, have less influence on the image generation.
 
 Downsampling is what happens when you use the "medium" setting. Of all three techniques I tried to decrease the Reflux effect, downsampling worked best. However, there are no further customization options. You can only downsample to 81 tokens (downsampling more is too much).
+
+## Interpolation methods
+
+Instead of averaging over small blocks of tokens, we can use a convolution function to shrink our 27x27 images patches to an arbitrary size. There are different functions available which most of you probably know from image resizing (its the same procedure). The averaging method above is "area", but there are also other methods available such as "bicubic".  
 
 ## Controling Reflux with Token merging
 
