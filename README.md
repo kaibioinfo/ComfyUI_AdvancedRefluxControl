@@ -82,10 +82,12 @@ So why is Reflux dominating the final prompt? It's because the user prompt is us
 
 So there are two solutions here: Either we shrink the strength of the Reflux prompt, or we shorten the Reflux prompt.
 
+The next sections are a bit chaotic: I changed the method several times and many stuff I tried is outdated already. The only and best technique I found so far is described in **Interpolation methods**.
+
 ## Controling Reflux with Token downsampling
 To shrink the Reflux prompt and increase the influence of the user prompt, we can use a simple trick: We take the 27x27 image patches and split them into 9x9 blocks, each containing 3x3 patches. We then merge all 3x3 tokens into one by averaging their latent embeddings. So instead of having a very long prompt with 27x27=729 tokens we now only have 9x9=81 tokens. So our newly added prompt is much smaller than the user provided prompt and, thus, have less influence on the image generation.
 
-Downsampling is what happens when you use the "medium" setting. Of all three techniques I tried to decrease the Reflux effect, downsampling worked best. However, there are no further customization options. You can only downsample to 81 tokens (downsampling more is too much).
+Downsampling is what happens when you use the "medium" setting. Of all three techniques I tried to decrease the Reflux effect, downsampling worked best. ~~However, there are no further customization options. You can only downsample to 81 tokens (downsampling more is too much)~~.
 
 ## Interpolation methods
 
