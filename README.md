@@ -51,7 +51,9 @@ Further decreasing the Reflux strength will transform the woman into statues fin
 
 ## Usage
 
-The ComfyUI plugin comes with two additional nodes: 
+You can use the images above for example workflows.
+
+The ComfyUI plugin comes with two additional nodes: StyleModelApplySimple and StyleModelApplyAdvanced. Usually, you can just replace your ApplyStyle node with the StyleModelApplySimple node and "medium" strength and you will get best results. However, feel free to experiment with the StyleModelApplyAdvanced node.
 
 ## Short background on Reflux
 
@@ -61,12 +63,14 @@ Reflux itself is just a very small linear function that projects these clip imag
 
 Intuitively, Reflux is translating your conditioning input image into "a prompt" that is added at the end of your own prompt.
 
-So why is Reflux dominating the final prompt? It's because the user prompt is usually very short (255 or 512 tokens). Reflux, in contrast, adds 729 new tokens to your prompt. This might be 4 times as much as your original prompt. Also, the Reflux prompt might contain much more information than a user written prompt that just contains the word "anime". 
+So why is Reflux dominating the final prompt? It's because the user prompt is usually very short (255 or 512 tokens). Reflux, in contrast, adds 729 new tokens to your prompt. This might be 3 times as much as your original prompt. Also, the Reflux prompt might contain much more information than a user written prompt that just contains the word "anime". 
 
 So there are two solutions here: Either we shrink the strength of the Reflux prompt, or we shorten the Reflux prompt.
 
 ## Token merging by downsampling
-To shrink the Reflux prompt and increase the influence of the user prompt, we can use a simple trick: Merge neighbouring tokens in Flux.. Sometimes this seems to harm the outcoming image less, but there are not many possible values: either we downsample by factor 3 or by factor 9. Latter is usually too strong. But I often get good results with factor 3.
+To shrink the Reflux prompt and increase the influence of the user prompt, we can use a simple trick: We take the 27x27 image patches and split them into 9x9 blocks, each containing 3x3 patches. We then merge all 3x3 tokens into one by averaging its latent embedding. So instead of having a very long prompt with 27x27=729 tokens we now only have 9x9=81 tokens. So our newly added prompt is much smaller than the user provided prompt and, thus, have less influence on the image generation.
+
+Downsampling is what happens when you use the "medium" setting. Of all three techniques I tried to decrease the Reflux effect, downsampling worked best. However, there are no further customization options. You can only downsample to 81 tokens (downsampling more is too much).
 
 ## Controling Reflux with Token merging
 
