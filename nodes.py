@@ -32,10 +32,8 @@ def automerge(tensor, threshold):
         newTensor.append(torch.stack(tokens))
     return torch.stack(newTensor)
 
-DownScalingFactors = {"1:1": 1, "1:3":3, "1:9": 9}
-STRENGTHS = ["very high", "medium", "low", "very low", "lowest"]
-STRENGTHS_VALUES = [1,3,3,3,3]
-WEIGHTING_VALUES = [1,1,0.75, 0.35,0.2]
+STRENGTHS = ["very high", "medium", "low", "very low"]
+STRENGTHS_VALUES = [1,3,4,5]
 
 class StyleModelApplySimple:
     @classmethod
@@ -51,15 +49,15 @@ class StyleModelApplySimple:
     CATEGORY = "conditioning/style_model"
 
     def apply_stylemodel(self, clip_vision_output, style_model, conditioning, image_strength):
-        cond = style_model.get_cond(clip_vision_output).flatten(start_dim=0, end_dim=1).unsqueeze(dim=0)
         stren = STRENGTHS.index(image_strength)
-        factor = STRENGTHS_VALUES[stren]
-        weighting = WEIGHTING_VALUES[stren]
-        if factor>1:
+        downsampling_factor = STRENGTHS_VALUES[stren]
+        mode="area"
+        cond = style_model.get_cond(clip_vision_output).flatten(start_dim=0, end_dim=1).unsqueeze(dim=0)
+        if downsampling_factor>1:
             (b,t,h)=cond.shape
             m = int(np.sqrt(t))
-            cond=torch.nn.PixelUnshuffle(factor)(cond.view(b, m, m, h).transpose(-1, 1)).transpose(1,-1)
-            cond=cond.view(b,m//factor, m//factor, h, factor*factor).mean(-1).view(b,-1, h) * weighting
+            cond=torch.nn.functional.interpolate(cond.view(b, m, m, h).transpose(1,-1), size=(m//downsampling_factor, m//downsampling_factor), mode=mode)#
+            cond=cond.transpose(1,-1).reshape(b,-1,h)
         c = []
         for t in conditioning:
             n = [torch.cat((t[0], cond), dim=1), t[1].copy()]
@@ -101,23 +99,23 @@ class StyleModelApplyAdvanced:
         return {"required": {"conditioning": ("CONDITIONING", ),
                              "style_model": ("STYLE_MODEL", ),
                              "clip_vision_output": ("CLIP_VISION_OUTPUT", ),
-                             "downscale": (["1:1", "1:3", "1:9"], {"default": "1:3"}),
+                             "downsampling_factor": ("INT", {"default": 3, "min": 1, "max": 9}),
+                             "mode": (["nearest", "bicubic", "bilinear","area", "nearest-exact" ], {"default": "area"}),
                              "merge_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                              "clipWeight": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
                              }}
     RETURN_TYPES = ("CONDITIONING",)
     FUNCTION = "apply_stylemodel"
 
-    CATEGORY = "conditioning/style_model"
+    CATEGORY = "_for_testing/conditioning/style_model"
 
-    def apply_stylemodel(self, clip_vision_output, style_model, conditioning, downscale, merge_strength, clipWeight):
+    def apply_stylemodel(self, clip_vision_output, style_model, conditioning, downsampling_factor, mode, merge_strength, clipWeight):
         cond = style_model.get_cond(clip_vision_output).flatten(start_dim=0, end_dim=1).unsqueeze(dim=0)
-        if downscale!="1:1":
+        if downsampling_factor>1:
             (b,t,h)=cond.shape
             m = int(np.sqrt(t))
-            factor = DownScalingFactors[downscale]
-            cond=torch.nn.PixelUnshuffle(factor)(cond.view(b, m, m, h).transpose(-1, 1)).transpose(1,-1)
-            cond=cond.view(b,m//factor, m//factor, h, factor*factor).mean(-1).view(b,-1, h)
+            cond=torch.nn.functional.interpolate(cond.view(b, m, m, h).transpose(1,-1), size=(m//downsampling_factor, m//downsampling_factor), mode=mode)#
+            cond=cond.transpose(1,-1).reshape(b,-1,h)
 
         cond = automerge(cond, merge_strength)*clipWeight
         c = []
@@ -139,7 +137,7 @@ NODE_CLASS_MAPPINGS = {
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "StyleModelApplySimple": "Apply Style model (simple)",
+    "StyleModelApplySimple": "Apply style model (simple)",
     "StyleModelApplyAdvanced": "Apply Style model (advanced)",
-    "StyleModelApplyInterpolation": "Apply style model (interpolation)"
+    "StyleModelApplyInterpolation": "Apply style model (advanced)"
 }
