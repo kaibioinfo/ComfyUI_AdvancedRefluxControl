@@ -32,8 +32,8 @@ def automerge(tensor, threshold):
         newTensor.append(torch.stack(tokens))
     return torch.stack(newTensor)
 
-STRENGTHS = ["very high", "medium", "low", "very low"]
-STRENGTHS_VALUES = [1,3,4,5]
+STRENGTHS = ["very high", "high", "medium", "low", "very low"]
+STRENGTHS_VALUES = [1,2, 3,4,5]
 
 class StyleModelApplySimple:
     @classmethod
