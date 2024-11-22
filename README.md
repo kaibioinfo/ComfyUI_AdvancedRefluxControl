@@ -4,7 +4,37 @@ As many of you might noticed, the recently released Reflux model is rather a mod
 
 If you use Reflux with an Image and add a prompt, your prompt is just ignored. In general, there is no strength slider or anything in Reflux to control how much the coniditioning image should determine the final outcome of your image.
 
-For this purpose I wrote this little custom node. It adds two parameters that control the strength of a Reflux. 
+For this purpose I wrote this little custom node that allows you change the strength of the Reflux effect.
+
+## Examples
+
+I used the following pexel image as an example conditioning image: [[https://www.pexels.com/de-de/foto/29455324/]]
+
+![original](https://github.com/user-attachments/assets/16c8bce5-8eb3-4acf-93e9-847a81e969e0)
+
+Lets say we want to have a similar image, but as comic/cartoon. The prompt I use is "comic, cartoon, vintage comic"
+
+Using Reflux on Flux1-dev I obtain the following image.
+
+**original Reflux setting**
+![ComfyUI_00106_](https://github.com/user-attachments/assets/0c5506ef-5131-4b57-962c-ab3703881363)
+
+As you can see, the prompt is vastly ignored. Using the custom node and "medium" setting I obtain
+
+**Reflux medium strength**
+![image](https://github.com/user-attachments/assets/eb81a55a-6bdd-43ef-a8da-8d27f210c116)
+
+Lets do the same with anime. The prompt is "anime drawing in anime style. Studio Ghibli, Makoto Shinkai."
+
+As the anime keyword has a strong effect in Flux, we see a better prompt following on default than with comics.
+
+**original Reflux setting**
+![image](https://github.com/user-attachments/assets/e5795369-2b8e-477a-974f-e0250d8689b6)
+
+Still, its far from perfect. With "medium" setting we get an image that is much closer to anime or studio Ghibli.
+
+**Reflux medium strength**
+![image](https://github.com/user-attachments/assets/b632457a-3a7e-4d99-981e-6c2682d16e2e)
 
 ## Short background on Reflux
 
