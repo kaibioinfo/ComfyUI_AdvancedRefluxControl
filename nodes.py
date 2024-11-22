@@ -33,6 +33,39 @@ def automerge(tensor, threshold):
     return torch.stack(newTensor)
 
 DownScalingFactors = {"1:1": 1, "1:3":3, "1:9": 9}
+STRENGTHS = ["very high", "medium", "low", "very low", "lowest"]
+STRENGTHS_VALUES = [1,3,3,3,3]
+WEIGHTING_VALUES = [1,1,0.75, 0.35,0.2]
+
+class StyleModelApplySimple:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"conditioning": ("CONDITIONING", ),
+                             "style_model": ("STYLE_MODEL", ),
+                             "clip_vision_output": ("CLIP_VISION_OUTPUT", ),
+                             "image_strength": (STRENGTHS, {"default": "medium"})
+                             }}
+    RETURN_TYPES = ("CONDITIONING",)
+    FUNCTION = "apply_stylemodel"
+
+    CATEGORY = "conditioning/style_model"
+
+    def apply_stylemodel(self, clip_vision_output, style_model, conditioning, image_strength):
+        cond = style_model.get_cond(clip_vision_output).flatten(start_dim=0, end_dim=1).unsqueeze(dim=0)
+        stren = STRENGTHS.index(image_strength)
+        factor = STRENGTHS_VALUES[stren]
+        weighting = WEIGHTING_VALUES[stren]
+        if factor>1:
+            (b,t,h)=cond.shape
+            m = int(np.sqrt(t))
+            cond=torch.nn.PixelUnshuffle(factor)(cond.view(b, m, m, h).transpose(-1, 1)).transpose(1,-1)
+            cond=cond.view(b,m//factor, m//factor, h, factor*factor).mean(-1).view(b,-1, h) * weighting
+        c = []
+        for t in conditioning:
+            n = [torch.cat((t[0], cond), dim=1), t[1].copy()]
+            c.append(n)
+        return (c, )
+
 
 class StyleModelApplyAdvanced:
     @classmethod
@@ -40,8 +73,8 @@ class StyleModelApplyAdvanced:
         return {"required": {"conditioning": ("CONDITIONING", ),
                              "style_model": ("STYLE_MODEL", ),
                              "clip_vision_output": ("CLIP_VISION_OUTPUT", ),
-                             "downscale": (["1:1", "1:3", "1:9"], {"default": "1:1"}),
-                             "merge_strength": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 1.0, "step": 0.01}),
+                             "downscale": (["1:1", "1:3", "1:9"], {"default": "1:3"}),
+                             "merge_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                              "clipWeight": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
                              }}
     RETURN_TYPES = ("CONDITIONING",)
@@ -71,10 +104,12 @@ class StyleModelApplyAdvanced:
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
+    "StyleModelApplySimple": StyleModelApplySimple,
     "StyleModelApplyAdvanced": StyleModelApplyAdvanced,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "StyleModelApplySimple": "Apply Style model (simple)",
     "StyleModelApplyAdvanced": "Apply Style model (advanced)"
 }
