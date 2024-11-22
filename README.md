@@ -18,6 +18,9 @@ So why is Reflux dominating the final prompt? It's because the user prompt is us
 
 So there are two solutions here: Either we shrink the strength of the Reflux prompt, or we shorten the Reflux prompt.
 
+## Token merging by downsampling
+To shrink the Reflux prompt and increase the influence of the user prompt, we can use a simple trick: Merge neighbouring tokens in Flux.. Sometimes this seems to harm the outcoming image less, but there are not many possible values: either we downsample by factor 3 or by factor 9. Latter is usually too strong. But I often get good results with factor 3.
+
 ## Controling Reflux with Token merging
 
 The idea here is to shrink the Reflux prompt length by merging similar tokens together. Just think about large part of your input image contain more or less the same stuff anyways, so why having always 729 tokens? My implementation here is extremely simple and stupid and not very efficient, but anyways: I just go over all Reflux tokens and merge two tokens if their cosine similarity is above a user defined threshold.
@@ -25,10 +28,6 @@ The idea here is to shrink the Reflux prompt length by merging similar tokens to
 Even a threshold like 0.9 is already removing half of the Reflux tokens. A threshold of 0.8 is often reducing the Reflux tokens so much that they are in similar length as the user prompt.
 
 I would start with a threshold of 0.8. If the image is blurry, increase the value a bit. If there is no effect of your prompt, decrease the threshold slightly.
-
-## Token merging by downsampling
-
-Instead of merging similar tokens, we can also merge neighboured tokens. Sometimes this seems to harm the outcoming image less, but there are not many possible values: either we downsample by factor 3 or by factor 9. Latter is usually too strong. But I often get good results with factor 3.
 
 ## Controling Reflux with Token downscaling
 
@@ -38,4 +37,4 @@ If you use downscaling, you have to use a very low weight. You can directly star
 
 ## Doing both or all three?
 
-Of course all these techniques can be combined. For me its still unclear what is better. My feeling so far is that downsampling or token merging works better, though, both together is often too much. If you use too low threshold for merging, the image often gets blurry, probably because the tokens have some implicit positional information that gets mixed up during merging. Downsampling seem to not have this issue, but is quite strong in its effect. If token merging or downsampling is not strong enough, you can add token downscaling to further improve the effect.
+My feeling currently is that downsampling by far works best. So I would first try downsampling with 1:3 and only use the other options if the effect is too weak or too strong.
