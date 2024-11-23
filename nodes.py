@@ -32,8 +32,8 @@ def automerge(tensor, threshold):
         newTensor.append(torch.stack(tokens))
     return torch.stack(newTensor)
 
-STRENGTHS = ["very high", "high", "medium", "low", "very low"]
-STRENGTHS_VALUES = [1,2, 3,4,5]
+STRENGTHS = ["highest", "high", "medium", "low", "lowest"]
+STRENGTHS_VALUES = [1,2,3,4,5]
 
 class StyleModelApplySimple:
     @classmethod
@@ -51,7 +51,7 @@ class StyleModelApplySimple:
     def apply_stylemodel(self, clip_vision_output, style_model, conditioning, image_strength):
         stren = STRENGTHS.index(image_strength)
         downsampling_factor = STRENGTHS_VALUES[stren]
-        mode="area"
+        mode="area" if downsampling_factor==3 else "bicubic"
         cond = style_model.get_cond(clip_vision_output).flatten(start_dim=0, end_dim=1).unsqueeze(dim=0)
         if downsampling_factor>1:
             (b,t,h)=cond.shape
