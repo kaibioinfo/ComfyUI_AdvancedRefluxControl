@@ -191,7 +191,7 @@ def processMask(mask,imgSize=384, patchSize=14):
 
 IMAGE_MODES = [
     "center crop (square)",
-    "center crop (keep aspect ratio)",
+    "keep aspect ratio",
     "autocrop with mask"
 ]
 

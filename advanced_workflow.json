@@ -842,7 +842,7 @@
       "widgets_values": [
         3,
         "area",
-        "center crop (keep aspect ratio)",
+        "keep aspect ratio",
         1,
         0.1
       ]
@@ -1044,10 +1044,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.5644739300537773,
+      "scale": 1,
       "offset": [
-        698.4116823189537,
-        520.0027266729342
+        -331.0938046855913,
+        279.16310986747857
       ]
     },
     "groupNodes": {}
