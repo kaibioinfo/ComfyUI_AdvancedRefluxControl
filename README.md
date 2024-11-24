@@ -6,6 +6,10 @@ If you use Reflux with an Image and add a prompt, your prompt is just ignored. I
 
 For this purpose I wrote this little custom node that allows you change the strength of the Reflux effect.
 
+## Changelog
+
+- **v2.0** This version adds the option to mask the conditioning image and to submit non-square images. The simple node hasn't changed and is backcompatible, the advanced mode is completely redesigned, so use v1 if you need backward compatibility.
+
 ## Examples
 
 I used the following pexel image as an example conditioning image: [[https://www.pexels.com/de-de/foto/29455324/]]
@@ -55,6 +59,35 @@ With medium we get an image back that looks more like porcelain instead of marbl
 ![image](https://github.com/user-attachments/assets/dce4aa6f-52ab-4ef0-b027-193318895969)
 
 Further decreasing the Reflux strength will transform the woman into statues finally, but it will also further decrease their likeness to the conditioning image. In almost all my experiments, it was better to repeat multiple seeds with the "medium" setting instead of further decreasing the strength.
+
+# Masked Conditioning Images
+
+With **v.2** you can now also add a mask to the conditioning image.
+![image](https://github.com/user-attachments/assets/71644833-1169-47b9-a843-83fd739b17c8)
+In this example I just masked the flower pattern on the clothing of the right women. I then prompt for "Man walking in New York, smiling, holding a smart phone in his hand.". As you can see, his shirt adapts to the flower pattern, while nothing outside the mask has any impact on the outcoming image.
+
+![image](https://github.com/user-attachments/assets/2163c140-4980-4738-88db-77c8286742e6)
+
+When the masking area is very small, you have to increase the strength of the conditioning image as "less of the image" is used to condition your generation.
+
+## Non-Square Images
+
+Redux (or better CLIP) cannot deal with non-square images by default. It will just center-crop your conditioning image such that it has a square resolution. Now that the node supports masking, we can simply support non-square images, too. We just make the image square by adding black borders to the shorter edge. Of course, we do not want to have these borders in the generated image, so we add a mask that cover the original image but not the black padding border.
+
+You do not have to do this yourself. There is a "keep aspect ratio" option that automatically generates the padding and adjust the mask for you.
+
+Here is an example: the input image (again from Pexel: ) is this one: https://www.pexels.com/photo/man-wearing-blue-gray-and-black-crew-neck-shirt-1103832/
+
+To make a point, I cropped the images to make it maximal non-square.
+![image](https://github.com/user-attachments/assets/8add3187-77b3-49b2-bd9e-c82297925a8d)
+
+With the normal workflow and the prompt "comic, vintage comic, cartoon" we would get this image back:
+![image](https://github.com/user-attachments/assets/169d33e0-27db-4e4c-b5cc-ec0b6729032a)
+
+With the "keep aspect ratio" option enabled, we get this instead:
+![image](https://github.com/user-attachments/assets/10e3a8b8-9752-4060-b6b5-ed35f9764320)
+
+Similar to masks, the conditioning effect will be weaker when we use only a small mask (or here: when the aspect ratio is extremely unbalanced). Thus, I would still recommend to avoid images with too extreme aspect ratios as this example image above.
 
 ## Usage
 
