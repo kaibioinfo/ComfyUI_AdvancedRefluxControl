@@ -63,7 +63,9 @@ Further decreasing the Reflux strength will transform the woman into statues fin
 # Masked Conditioning Images
 
 With **v.2** you can now also add a mask to the conditioning image.
+
 ![image](https://github.com/user-attachments/assets/71644833-1169-47b9-a843-83fd739b17c8)
+
 In this example I just masked the flower pattern on the clothing of the right women. I then prompt for "Man walking in New York, smiling, holding a smart phone in his hand.". As you can see, his shirt adapts to the flower pattern, while nothing outside the mask has any impact on the outcoming image.
 
 ![image](https://github.com/user-attachments/assets/2163c140-4980-4738-88db-77c8286742e6)
@@ -79,29 +81,42 @@ You do not have to do this yourself. There is a "keep aspect ratio" option that 
 Here is an example: the input image (again from Pexel: ) is this one: https://www.pexels.com/photo/man-wearing-blue-gray-and-black-crew-neck-shirt-1103832/
 
 To make a point, I cropped the images to make it maximal non-square.
+
 ![image](https://github.com/user-attachments/assets/8add3187-77b3-49b2-bd9e-c82297925a8d)
 
 With the normal workflow and the prompt "comic, vintage comic, cartoon" we would get this image back:
+
 ![image](https://github.com/user-attachments/assets/169d33e0-27db-4e4c-b5cc-ec0b6729032a)
 
 With the "keep aspect ratio" option enabled, we get this instead:
+
 ![image](https://github.com/user-attachments/assets/10e3a8b8-9752-4060-b6b5-ed35f9764320)
 
 Similar to masks, the conditioning effect will be weaker when we use only a small mask (or here: when the aspect ratio is extremely unbalanced). Thus, I would still recommend to avoid images with too extreme aspect ratios as this example image above.
 
 ## Usage
 
-You can use the images above for example workflows.
+I was told that the images above for some reason do not contain the workflow. So I just uploaded the workflow files into the github. The **simple_workflow.json** is the workflow containing a single setting, the **advanced_workflow.json** has several customization options as well as masking and aspect ratio.
 
-Since last update I added a new node which I would recommend over the old workflow above. Use this image as an example workflow:
+### StyleModelApplySimple
 
-![image](https://github.com/user-attachments/assets/b6ee8e4e-2599-499d-9dd4-7fbdc5879e90)
+This workflow is a replacement for the ComfyUI StyleModelApply node. It has a single option that controls the influence of the conditioning image on the generation. The example images are all generated with the "medium" strength option. However, when using masking, you might have to use "strongest" or "strong" instead.
 
-There are two parameters you can play around with:
-- downsampling_factor: as larger the value as less information you get from your image. Use a value between 1 and 4 with 1 is the original reflux method. For all example images I used a downsampling_factor of 3, which usually works best. The image above, however, uses a downsampling_factor of 2 and, as you can see, is even closer to the original image while still having a clear anime style
-- mode: the method used for downsampling. "area" or "bicubic" work best.
 
-The ComfyUI plugin comes with two additional nodes: StyleModelApplySimple and StyleModelApplyAdvanced. Usually, you can just replace your ApplyStyle node with the StyleModelApplySimple node and "medium" strength and you will get best results. However, feel free to experiment with the StyleModelApplyAdvanced node.
+### StyleModelApplyAdvanced
+
+This node allows for more customization. As input it gets the conditioning (prompt), the Redux style model, the CLIP vision model and optionally(!) the mask. Its parameters are:
+
+- **downsampling_factor**: This is the most important parameter and it determines how strongly the conditioning image influences the generated image. In fact, the strength value in the StyleModelApplySimple node is just changing this single value from 1 (strongest), to 5 (weakest). The "medium" strength option is a downsampling_factor of 3. You can also choose other values up to 9.
+- **downsampling_function**: These functions are the same as in any graphics program when you resize an image. The default is "area", but "bicubic" and "nearest_exact" are also interesting choices. The chosen function can very much change the outcome, so its worth experimenting a bit.
+- **mode**: How the image should be cropped:
+- - center crop (square) is what Redux is doing by default: cropping your image to a square image and then resizing it to 384x384 pixel
+- - keep aspect ratio will add a padding to your image such that it gets square. It will adjust the mask (or generate one if no one is given) such that the padding is not part of the mask. Note that the final image is still resized to 384x384, so your image will be compressed more if you add more padding.
+- - autocrop with mask will crop your image in a way that the masked area is in the center. It will also crop your image such that only the masked area and a margin remains. The margin is specified as the autocrop_margin parameter and is relative to the total size of the image. So autocropping with a margin of 0.1 means the crop is done on the masked area + 10% of the image on each side.
+- **weight**: This option downscales the Redux tokens by the given value squared. This is very similar to the "conditioning average" approach many people use to reduce the effect of Redux on the generated image. This is an alternative way of reducing Redux' impact, but downsampling works better in most cases. However, feel free to also experiment with this value, or even with a combination of both: downsampling AND weight.
+- **autocrop_margin** this parameter is only used when "autocrop with mask" is selected as mode
+
+The node outputs the conditioning, as well as the cropped and resized image and its mask. You neither need the image nor the mask, they are just for debugging. Play around with the cropping option and use the "Image preview" node to see how it effects the cropped image and mask.
 
 ## Short background on Reflux
 
