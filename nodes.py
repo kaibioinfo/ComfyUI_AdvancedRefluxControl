@@ -195,7 +195,7 @@ IMAGE_MODES = [
     "autocrop with mask"
 ]
 
-class StyleModelApplyAdvanced:
+class ReduxAdvanced:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"conditioning": ("CONDITIONING", ),
@@ -251,11 +251,11 @@ class StyleModelApplyAdvanced:
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
     "StyleModelApplySimple": StyleModelApplySimple,
-    "StyleModelApplyAdvanced": StyleModelApplyAdvanced
+    "ReduxAdvanced": ReduxAdvanced
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "StyleModelApplySimple": "Apply style model (simple)",
-    "StyleModelApplyAdvanced": "Apply Style model (advanced)"
+    "ReduxAdvanced": "Apply Redux model (advanced)"
 }
