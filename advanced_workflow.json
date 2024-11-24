@@ -733,6 +733,47 @@
       ]
     },
     {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [
+        358,
+        252
+      ],
+      "size": [
+        422.84503173828125,
+        164.31304931640625
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            41
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "comic style, vintage comic, cartoon"
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
       "id": 52,
       "type": "StyleModelApplyAdvanced",
       "pos": [
@@ -741,7 +782,7 @@
       ],
       "size": [
         317.4000244140625,
-        210
+        234
       ],
       "flags": {},
       "order": 15,
@@ -800,51 +841,11 @@
       },
       "widgets_values": [
         3,
+        "area",
         "center crop (keep aspect ratio)",
         1,
         0.1
       ]
-    },
-    {
-      "id": 6,
-      "type": "CLIPTextEncode",
-      "pos": [
-        358,
-        252
-      ],
-      "size": [
-        422.84503173828125,
-        164.31304931640625
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "links": [
-            41
-          ],
-          "slot_index": 0
-        }
-      ],
-      "title": "CLIP Text Encode (Positive Prompt)",
-      "properties": {
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        "comic style, vintage comic, cartoon"
-      ],
-      "color": "#232",
-      "bgcolor": "#353"
     }
   ],
   "links": [
@@ -1043,10 +1044,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.620921323059155,
+      "scale": 0.5644739300537773,
       "offset": [
-        779.663168440092,
-        527.7080186114184
+        698.4116823189537,
+        520.0027266729342
       ]
     },
     "groupNodes": {}

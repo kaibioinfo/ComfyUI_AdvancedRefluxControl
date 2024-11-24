@@ -80,7 +80,6 @@ def crop(img, mask, box, desiredSize):
     if mask is not None:
         mask=torch.nn.functional.interpolate(mask, size=(h,w), mode="bicubic").view(-1,h,w,1)
     img = torch.nn.functional.interpolate(img.transpose(-1,1), size=(w,h), mode="bicubic", antialias=True)
-    print(img.shape)
     return (img[:, :, ox:(desiredSize+ox), oy:(desiredSize+oy)].transpose(1,-1), None if mask == None else mask[:, oy:(desiredSize+oy), ox:(desiredSize+ox),:])
 
 def letterbox(img, mask, w, h, desiredSize):
@@ -155,10 +154,7 @@ def prepareImageAndMask(visionEncoder, image, mask, mode, autocrop_margin, desir
         imgsize = min(H,W)
         ratio = desiredSize/imgsize
         (w,h) = (round(W*ratio), round(H*ratio))
-        print(ratio)
-        print((w,h))
         image, mask = crop(image, standardizeMask(mask), ((w - desiredSize)//2, (h - desiredSize)//2, w, h), desiredSize)
-        print(image.shape)
     elif mode==1:
         if mask is None:
             mask = torch.ones(size=(B,H,W))
@@ -207,6 +203,7 @@ class StyleModelApplyAdvanced:
                              "clip_vision": ("CLIP_VISION", ),
                              "image": ("IMAGE",),
                              "downsampling_factor": ("INT", {"default": 3, "min": 1, "max":9}),
+                             "downsampling_function": (["nearest", "bilinear", "bicubic","area","nearest-exact"], {"default": "area"}),
                              "mode": (IMAGE_MODES, {"default": "center crop (square)"}),
                              "weight": ("FLOAT", {"default": 1.0, "min":0.0, "max":1.0, "step":0.01})
                             },
@@ -219,7 +216,7 @@ class StyleModelApplyAdvanced:
 
     CATEGORY = "conditioning/style_model"
 
-    def apply_stylemodel(self, clip_vision, image, style_model, conditioning, downsampling_factor, mode,weight, mask=None, autocrop_margin=0.0):
+    def apply_stylemodel(self, clip_vision, image, style_model, conditioning, downsampling_factor, downsampling_function,mode,weight, mask=None, autocrop_margin=0.0):
         image, masko = prepareImageAndMask(clip_vision, image, mask, mode, autocrop_margin)
         clip_vision_output,mask=(clip_vision.encode_image(image), patchifyMask(masko))
         mode="area"
@@ -230,7 +227,7 @@ class StyleModelApplyAdvanced:
             cond = cond.view(b, m, m, h)
             if mask is not None:
                 cond = cond*mask
-            cond=torch.nn.functional.interpolate(cond.transpose(1,-1), size=(m//downsampling_factor, m//downsampling_factor), mode=mode)#
+            cond=torch.nn.functional.interpolate(cond.transpose(1,-1), size=(m//downsampling_factor, m//downsampling_factor), mode=downsampling_function)
             cond=cond.transpose(1,-1).reshape(b,-1,h)
             mask = None if mask is None else torch.nn.functional.interpolate(mask.view(b, m, m, 1).transpose(1,-1), size=(m//downsampling_factor, m//downsampling_factor), mode=mode).transpose(-1,1)
         cond = cond*(weight*weight)
