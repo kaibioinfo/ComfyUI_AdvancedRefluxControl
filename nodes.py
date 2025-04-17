@@ -217,8 +217,13 @@ class ReduxAdvanced:
     CATEGORY = "conditioning/style_model"
 
     def apply_stylemodel(self, clip_vision, image, style_model, conditioning, downsampling_factor, downsampling_function,mode,weight, mask=None, autocrop_margin=0.0):
-        image, masko = prepareImageAndMask(clip_vision, image, mask, mode, autocrop_margin)
-        clip_vision_output,mask=(clip_vision.encode_image(image), patchifyMask(masko))
+        desiredSize = 384
+        patchSize = 14
+        if clip_vision.model.vision_model.embeddings.position_embedding.weight.shape[0] == 1024:
+            desiredSize = 512
+            patchSize = 16
+        image, masko = prepareImageAndMask(clip_vision, image, mask, mode, autocrop_margin, desiredSize)
+        clip_vision_output,mask=(clip_vision.encode_image(image), patchifyMask(masko, patchSize))
         mode="area"
         cond = style_model.get_cond(clip_vision_output).flatten(start_dim=0, end_dim=1).unsqueeze(dim=0)
         (b,t,h)=cond.shape
