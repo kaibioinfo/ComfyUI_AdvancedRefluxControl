@@ -232,9 +232,10 @@ class ReduxAdvanced:
             cond = cond.view(b, m, m, h)
             if mask is not None:
                 cond = cond*mask
-            cond=torch.nn.functional.interpolate(cond.transpose(1,-1), size=(int(m//downsampling_factor), int(m//downsampling_factor)), mode=downsampling_function)
+            downsampled_size = (round(m/downsampling_factor), round(m/downsampling_factor))
+            cond=torch.nn.functional.interpolate(cond.transpose(1,-1), size=downsampled_size, mode=downsampling_function)
             cond=cond.transpose(1,-1).reshape(b,-1,h)
-            mask = None if mask is None else torch.nn.functional.interpolate(mask.view(b, m, m, 1).transpose(1,-1), size=(int(m//downsampling_factor), int(m//downsampling_factor)), mode=mode).transpose(-1,1)
+            mask = None if mask is None else torch.nn.functional.interpolate(mask.view(b, m, m, 1).transpose(1,-1), size=downsampled_size, mode=mode).transpose(-1,1)
         cond = cond*(weight*weight)
         c = []
         if mask is not None:
