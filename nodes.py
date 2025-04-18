@@ -202,7 +202,7 @@ class ReduxAdvanced:
                              "style_model": ("STYLE_MODEL", ),
                              "clip_vision": ("CLIP_VISION", ),
                              "image": ("IMAGE",),
-                             "downsampling_factor": ("INT", {"default": 3, "min": 1, "max":9}),
+                             "downsampling_factor": ("FLOAT", {"default": 3, "min": 1, "max":9, "step": 0.1}),
                              "downsampling_function": (["nearest", "bilinear", "bicubic","area","nearest-exact"], {"default": "area"}),
                              "mode": (IMAGE_MODES, {"default": "center crop (square)"}),
                              "weight": ("FLOAT", {"default": 1.0, "min":0.0, "max":1.0, "step":0.01})
@@ -232,9 +232,9 @@ class ReduxAdvanced:
             cond = cond.view(b, m, m, h)
             if mask is not None:
                 cond = cond*mask
-            cond=torch.nn.functional.interpolate(cond.transpose(1,-1), size=(m//downsampling_factor, m//downsampling_factor), mode=downsampling_function)
+            cond=torch.nn.functional.interpolate(cond.transpose(1,-1), size=(int(m//downsampling_factor), int(m//downsampling_factor)), mode=downsampling_function)
             cond=cond.transpose(1,-1).reshape(b,-1,h)
-            mask = None if mask is None else torch.nn.functional.interpolate(mask.view(b, m, m, 1).transpose(1,-1), size=(m//downsampling_factor, m//downsampling_factor), mode=mode).transpose(-1,1)
+            mask = None if mask is None else torch.nn.functional.interpolate(mask.view(b, m, m, 1).transpose(1,-1), size=(int(m//downsampling_factor), int(m//downsampling_factor)), mode=mode).transpose(-1,1)
         cond = cond*(weight*weight)
         c = []
         if mask is not None:
@@ -249,7 +249,7 @@ class ReduxAdvanced:
         for t in conditioning:
             n = [torch.cat((t[0], cond), dim=1), t[1].copy()]
             c.append(n)
-        return (c, image, masko.squeeze(-1))
+        return (c, image, masko and masko.squeeze(-1))
 
 
 # A dictionary that contains all nodes you want to export with their names
