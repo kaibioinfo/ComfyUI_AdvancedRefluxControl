@@ -250,7 +250,7 @@ class ReduxAdvanced:
         for t in conditioning:
             n = [torch.cat((t[0], cond), dim=1), t[1].copy()]
             c.append(n)
-        return (c, image, masko and masko.squeeze(-1))
+        return (c, image, masko.squeeze(-1) if masko is not None else None)
 
 
 # A dictionary that contains all nodes you want to export with their names
