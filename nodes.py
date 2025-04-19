@@ -315,8 +315,10 @@ class ReduxAdvanced:
             for i in range(b):
                 filtered = cond[i][binary_mask[i]]
                 padded_embeddings[i, :filtered.size(0)] = filtered
-                continuous_mask[i, :filtered.size(0)] = mask[i].view(-1)[binary_mask[i]].float()
+                continuous_mask[i, :filtered.size(0)] = mask[i].reshape(-1)[binary_mask[i]].float()
             cond = padded_embeddings
+        else:
+            continuous_mask = torch.ones(cond.shape[0], cond.shape[1])
 
         for t in conditioning:
             t = combine_attention_mask(t, cond, continuous_mask, attention_bias_maximum, attention_bias_minimum)
