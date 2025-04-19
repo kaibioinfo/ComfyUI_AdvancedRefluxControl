@@ -75,10 +75,45 @@ def standardizeMask(mask):
         mask=mask.view(b,1,h,w)
     return mask
 
+def combine_attention_mask(conditioning, clip_vision_tokens, mask, attention_bias_maximum, attention_bias_minimum):
+    # mask is (b,h,w) with [0,1] -> we transform to [attention_bias_maximum, attention_bias_minimum]
+    attn_bias = attention_bias_maximum*(mask) + attention_bias_minimum*(1-mask)
+    txt, keys = conditioning
+    keys = keys.copy()
+    n = clip_vision_tokens.shape[1]
+    # get the size of the mask image
+    mask_ref_size = keys.get("attention_mask_img_shape", (1, 1))
+    n_ref = mask_ref_size[0] * mask_ref_size[1]
+    n_txt = txt.shape[1]
+    # grab the existing mask
+    mask = keys.get("attention_mask", None)
+    # create a default mask if it doesn't exist
+    if mask is None:
+        mask = torch.zeros((txt.shape[0], n_txt + n_ref, n_txt + n_ref), dtype=torch.float16)
+    # convert the mask dtype, because it might be boolean
+    # we want it to be interpreted as a bias
+    if mask.dtype == torch.bool:
+        # log(True) = log(1) = 0
+        # log(False) = log(0) = -inf
+        mask = torch.log(mask.to(dtype=torch.float16))
+    # now we make the mask bigger to add space for our new tokens
+    new_mask = torch.zeros((txt.shape[0], n_txt + n + n_ref, n_txt + n + n_ref), dtype=torch.float16)
+    # copy over the old mask, in quandrants
+    new_mask[:, :n_txt, :n_txt] = mask[:, :n_txt, :n_txt]
+    new_mask[:, :n_txt, n_txt+n:] = mask[:, :n_txt, n_txt:]
+    new_mask[:, n_txt+n:, :n_txt] = mask[:, n_txt:, :n_txt]
+    new_mask[:, n_txt+n:, n_txt+n:] = mask[:, n_txt:, n_txt:]
+    # now fill in the attention bias to our redux tokens
+    new_mask[:, :n_txt, n_txt:n_txt+n] = attn_bias
+    new_mask[:, n_txt+n:, n_txt:n_txt+n] = attn_bias
+    keys["attention_mask"] = new_mask.to(txt.device)
+    keys["attention_mask_img_shape"] = mask_ref_size
+    return (txt,keys)
+
 def crop(img, mask, box, desiredSize):
     (ox,oy,w,h) = box
     if mask is not None:
-        mask=torch.nn.functional.interpolate(mask, size=(h,w), mode="bicubic").view(-1,h,w,1)
+        mask=torch.nn.functional.interpolate(mask, size=(h,w), mode="area").view(-1,h,w,1)
     img = torch.nn.functional.interpolate(img.transpose(-1,1), size=(w,h), mode="bicubic", antialias=True)
     return (img[:, :, ox:(desiredSize+ox), oy:(desiredSize+oy)].transpose(1,-1), None if mask == None else mask[:, oy:(desiredSize+oy), ox:(desiredSize+ox),:])
 
@@ -195,6 +230,38 @@ IMAGE_MODES = [
     "autocrop with mask"
 ]
 
+class ReduxCombine:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {"a": ("CONDITIONING", ),
+                             "b": ("CONDITIONING", )
+                            }}
+    RETURN_TYPES = ("CONDITIONING",)
+    FUNCTION = "combine"
+
+    CATEGORY = "conditioning/style_model"
+
+    def combine(self, a, b):
+        c = []
+        for (ta,tb) in zip(a,b):
+            tensorsA, keysA = ta
+            tensorsB, keysB = tb
+            shapeA = keysA["style_model_tokenspace"]
+            (batchSizeB, seqB, hB) = keysB["style_model_tokenspace"]
+            continuous_maskB = keysB["style_model_continuous_mask"]
+            (attention_bias_maximumB, attention_bias_minimumB) = keysB["style_model_attn_bias"]
+            # copy tokens from b to a
+            extr = tensorsB[:, -seqB:, :]
+            (tensorsC, keysC) = combine_attention_mask(ta, extr, continuous_maskB, attention_bias_maximumB, attention_bias_minimumB)
+            print(tensorsC.shape)
+            print(extr.shape)
+            tensorsC = torch.cat((tensorsC, extr),dim=1)
+
+            c.append([tensorsC, keysC])
+        return (c,)
+
+
+
 class ReduxAdvanced:
     @classmethod
     def INPUT_TYPES(s):
@@ -209,14 +276,16 @@ class ReduxAdvanced:
                             },
                 "optional": {
                             "mask": ("MASK", ),
-                            "autocrop_margin": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01})
+                            "autocrop_margin": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+                            "attention_bias_maximum": ("FLOAT", {"default": 0.0, "min": -50, "max": 50}),
+                            "attention_bias_minimum": ("FLOAT", {"default": -50.0, "min": -50, "max": 50})
                 }}
     RETURN_TYPES = ("CONDITIONING","IMAGE", "MASK")
     FUNCTION = "apply_stylemodel"
 
     CATEGORY = "conditioning/style_model"
 
-    def apply_stylemodel(self, clip_vision, image, style_model, conditioning, downsampling_factor, downsampling_function,mode,weight, mask=None, autocrop_margin=0.0):
+    def apply_stylemodel(self, clip_vision, image, style_model, conditioning, downsampling_factor, downsampling_function,mode,weight, mask=None, autocrop_margin=0.0, attention_bias_maximum=0.0, attention_bias_minimum=-50):
         desiredSize = 384
         patchSize = 14
         if clip_vision.model.vision_model.embeddings.position_embedding.weight.shape[0] == 1024:
@@ -239,25 +308,34 @@ class ReduxAdvanced:
         cond = cond*(weight*weight)
         c = []
         if mask is not None:
-            mask = (mask>0).reshape(b,-1)
-            max_len = mask.sum(dim=1).max().item()
+            binary_mask = (mask>0).reshape(b,-1)
+            max_len = binary_mask.sum(dim=1).max().item()
             padded_embeddings = torch.zeros((b, max_len, h), dtype=cond.dtype, device=cond.device)
+            continuous_mask = torch.zeros((b, max_len))
             for i in range(b):
-                filtered = cond[i][mask[i]]
+                filtered = cond[i][binary_mask[i]]
                 padded_embeddings[i, :filtered.size(0)] = filtered
+                continuous_mask[i, :filtered.size(0)] = mask[i].view(-1)[binary_mask[i]].float()
             cond = padded_embeddings
 
         for t in conditioning:
-            n = [torch.cat((t[0], cond), dim=1), t[1].copy()]
+            t = combine_attention_mask(t, cond, continuous_mask, attention_bias_maximum, attention_bias_minimum)
+            adict = t[1].copy()
+            adict["style_model_tokenspace"] = cond.shape
+            adict["style_model_continuous_mask"] = continuous_mask
+            adict["style_model_attn_bias"] = (attention_bias_maximum, attention_bias_minimum)
+            
+            n = [torch.cat((t[0], cond), dim=1), adict]
             c.append(n)
-        return (c, image, masko and masko.squeeze(-1))
+        return (c, image, masko.squeeze(-1) if masko is not None else None)
 
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
     "StyleModelApplySimple": StyleModelApplySimple,
-    "ReduxAdvanced": ReduxAdvanced
+    "ReduxAdvanced": ReduxAdvanced,
+    "ReduxCombine": ReduxCombine
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
