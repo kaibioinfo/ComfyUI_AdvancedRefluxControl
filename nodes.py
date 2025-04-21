@@ -94,7 +94,7 @@ def letterbox(img, mask, w, h, desiredSize):
         mask=torch.nn.functional.interpolate(mask, size=(h,w), mode="bicubic")
         letterbox = torch.zeros(size=(b,1,desiredSize,desiredSize))
         letterbox[:, :, offsety:(offsety+h), offsetx:(offsetx+w)] += mask
-        mask = letterbox.view(b,1,desiredSize,desiredSize)
+        mask = letterbox.movedim(1, -1) # B C H W -> B H W C
     return (img, mask)
 
 def getBoundingBox(mask, w, h, relativeMargin, desiredSize):
